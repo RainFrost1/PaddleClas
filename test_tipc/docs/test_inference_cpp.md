@@ -1,86 +1,70 @@
-# C++预测功能测试
+# Linux GPU/CPU C++ 推理功能测试
 
-C++预测功能测试的主程序为`test_inference_cpp.sh`，可以测试基于C++预测库的模型推理功能。
+Linux GPU/CPU C++ 推理功能测试的主程序为`test_inference_cpp.sh`，可以测试基于C++预测引擎的推理功能。
 
 ## 1. 测试结论汇总
 
-基于训练是否使用量化，进行本测试的模型可以分为`正常模型`和`量化模型`，这两类模型对应的C++预测功能汇总如下：
+- 推理相关：
 
-| 模型类型 |device | batchsize | tensorrt | mkldnn | cpu多线程 |
-|  ----   |  ---- |   ----   |  :----:  |   :----:   |  :----:  |
-| 正常模型 | GPU | 1/6 | fp32/fp16 | - | - |
-| 正常模型 | CPU | 1/6 | - | fp32 | 支持 |
-| 量化模型 | GPU | 1/6 | int8 | - | - |
-| 量化模型 | CPU | 1/6 | - | int8 | 支持 |
+| 算法名称 | 模型名称 | device_CPU | device_GPU | tensorrt | mkldnn |
+|  :----:   |  :----: |   :----:   |  :----:  |   :----:   |   :----:   |
+|  MobileNetV3   |  mobilenet_v3_small |  支持 | 支持 | 支持 | 支持 |
 
 ## 2. 测试流程
-运行环境配置请参考[文档](./install.md)的内容配置TIPC的运行环境。
 
-### 2.1 功能测试
-先运行`prepare.sh`准备数据和模型，然后运行`test_inference_cpp.sh`进行测试，最终在```test_tipc/output```目录下生成`cpp_infer_*.log`后缀的日志文件。
+### 2.1 准备数据和推理模型
 
-```shell
-bash test_tipc/prepare.sh  test_tipc/config/ResNet/ResNet50_vd_linux_gpu_normal_normal_infer_cpp_linux_gpu_cpu.txt cpp_infer
+#### 2.1.1 准备数据
 
-# 用法1:
-bash test_tipc/test_inference_cpp.sh test_tipc/config/ResNet/ResNet50_vd_linux_gpu_normal_normal_infer_cpp_linux_gpu_cpu.txt
-# 用法2: 指定GPU卡预测，第三个传入参数为GPU卡号
-bash test_tipc/test_inference_cpp.sh test_tipc/config/ResNet/ResNet50_vd_linux_gpu_normal_normal_infer_cpp_linux_gpu_cpu.txt 1
-```
+从验证集或者测试集中抽出至少一张图像，用于后续的推理过程验证。
 
-运行预测指令后，在`test_tipc/output`文件夹下自动会保存运行日志，包括以下文件：
+#### 2.1.2 准备推理模型
 
-```shell
-test_tipc/output/
-|- results_cpp.log    # 运行指令状态的日志
-|- cls_cpp_infer_cpu_usemkldnn_False_threads_1_precision_fp32_batchsize_1.log  # CPU上不开启Mkldnn，线程数设置为1，测试batch_size=1条件下的预测运行日志
-|- cls_cpp_infer_cpu_usemkldnn_False_threads_6_precision_fp32_batchsize_1.log  # CPU上不开启Mkldnn，线程数设置为6，测试batch_size=1条件下的预测运行日志
-|- cls_cpp_infer_gpu_usetrt_False_precision_fp32_batchsize_1.log # GPU上不开启TensorRT，测试batch_size=1的fp32精度预测日志
-|- cls_cpp_infer_gpu_usetrt_True_precision_fp16_batchsize_1.log  # GPU上开启TensorRT，测试batch_size=1的fp16精度预测日志
-......
-```
-其中results_cpp.log中包含了每条指令的运行状态，如果运行成功会输出：
+* 如果已经训练好了模型，可以参考[模型导出](../../tools/export_model.py)，导出`inference model`，用于模型预测。得到预测模型后，假设模型文件放在`inference`目录下，则目录结构如下。
 
 ```
-Run successfully with command - ./deploy/cpp/build/clas_system -c inference_cls.yaml 2>&1|tee test_tipc/output/cls_cpp_infer_gpu_usetrt_False_precision_fp32_batchsize_1.log
-......
+mobilenet_v3_small_infer/
+|--inference.pdmodel
+|--inference.pdiparams
+|--inference.pdiparams.info
 ```
-如果运行失败，会输出：
-```
-Run failed with command - ./deploy/cpp/build/clas_system -c inference_cls.yaml 2>&1|tee test_tipc/output/cls_cpp_infer_gpu_usetrt_False_precision_fp32_batchsize_1.log
-......
-```
-可以很方便的根据results_cpp.log中的内容判定哪一个指令运行错误。
+**注意**：上述文件中，`inference.pdmodel`文件存储了模型结构信息，`inference.pdiparams`文件存储了模型参数信息。注意文件存储的目录需要与[配置文件](../config/inference_cls.yaml)中的`inference_model_dir`参数对应一致。
+其他参数修改，请直接修改[配置文件](../config/inference_cls.yaml)中的参数。包括测试图片路径、是否使用GPU等。
+
+### 2.2 准备环境
+
+C++推理功能编译，请参[C++编译文档](../../deploy/cpp_shitu/readme.md)。
+
+### 2.3 功能测试
 
 
-### 2.2 精度测试
+测试方法如下所示，希望测试不同的模型文件，只需更换为自己的参数配置文件，即可完成对应模型的测试。
 
-使用compare_results.py脚本比较模型预测的结果是否符合预期，主要步骤包括：
-- 提取日志中的预测坐标；
-- 从本地文件中提取保存好的坐标结果；
-- 比较上述两个结果是否符合精度预期，误差大于设置阈值时会报错。
-
-#### 使用方式
-运行命令：
-```shell
-python3.7 test_tipc/compare_results.py --gt_file=./test_tipc/results/cls_cpp_*.txt  --log_file=./test_tipc/output/cls_cpp_*.log --atol=1e-3 --rtol=1e-3
+```bash
+# 注意：运行前请修改好`inference_cls.yaml`中的`inference_model_dir`参数
+bash test_tipc/test_inference_cpp.sh test_tipc/config/inference_cls.yaml
 ```
 
-参数介绍：  
-- gt_file： 指向事先保存好的预测结果路径，支持*.txt 结尾，会自动索引*.txt格式的文件，文件默认保存在test_tipc/result/ 文件夹下
-- log_file: 指向运行test_tipc/test_inference_cpp.sh 脚本的infer模式保存的预测日志，预测日志中打印的有预测结果，比如：文本框，预测文本，类别等等，同样支持cpp_infer_*.log格式传入
-- atol: 设置的绝对误差
-- rtol: 设置的相对误差
+输出结果如下，表示命令运行成功。
 
-#### 运行结果
+```bash
+Run successfully with command - ./deploy/inference_cpp/build/clas_system test_tipc/configs/mobilenet_v3_small/inference_cpp.txt ./images/demo.jpg > ./log/infer_cpp/infer_cpp_use_cpu_use_mkldnn.log 2>&1 !
+```
 
-正常运行效果如下图：
-<img src="compare_cpp_right.png" width="1000">
+最终log中会打印出结果，如下所示
+```
+img_file_list length: 1
+result:
+    class id: 8
+    score: 0.9014719725
+Current image path: deploy/images/ILSVRC2012_val_00000010.jpeg
+Current time cost: 0.1409450000 s, average time cost in all: 0.1409450000 s.
+    Top1: class_id: 259, score: 0.1844, label: Pomeranian
+    Top2: class_id: 153, score: 0.1327, label: Maltese dog, Maltese terrier, Maltese
+    Top3: class_id: 204, score: 0.1002, label: Lhasa, Lhasa apso
+    Top4: class_id: 265, score: 0.0899, label: toy poodle
+    Top5: class_id: 154, score: 0.0761, label: Pekinese, Pekingese, Peke
+```
+详细log位于`./log/infer_cpp/infer_cpp_use_cpu_use_mkldnn.log`中。
 
-出现不一致结果时的运行输出：
-<img src="compare_cpp_wrong.png" width="1000">
-
-
-## 3. 更多教程
-
-本文档为功能测试用，更详细的c++预测使用教程请参考：[服务器端C++预测](../../docs/zh_CN/inference_deployment/)  
+如果运行失败，也会在终端中输出运行失败的日志信息以及对应的运行命令。可以基于该命令，分析运行失败的原因。
