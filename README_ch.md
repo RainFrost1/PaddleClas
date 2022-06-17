@@ -84,6 +84,7 @@ PP-ShiTu图像识别快速体验：[点击这里](./docs/zh_CN/quick_start/quick
   - [模型压缩](deploy/slim/README.md)
 - [PP-ShiTu图像识别系统介绍](#图像识别系统介绍)
   - [图像识别快速体验](docs/zh_CN/quick_start/quick_start_recognition.md)
+  - [test](docs/zh_CN/deploy/cpp_infer.md)
   - 模块介绍
     - [主体检测](./docs/zh_CN/image_recognition_pipeline/mainbody_detection.md)
     - [特征提取模型](./docs/zh_CN/image_recognition_pipeline/feature_extraction.md)
