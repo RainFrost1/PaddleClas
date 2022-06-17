@@ -1,0 +1,1 @@
+../../docs/zh_CN/deploy/cpp_infer_new.md
