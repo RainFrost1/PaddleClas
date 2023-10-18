@@ -33,4 +33,4 @@ void PicoDetPostProcess(std::vector<PPShiTu::ObjectResult> *results,
                         float score_threshold = 0.3, float nms_threshold = 0.5,
                         int num_class = 80, int reg_max = 7);
 
-} // namespace PPShiTu
+}  // namespace PPShiTu

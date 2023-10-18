@@ -14,26 +14,25 @@
 
 #pragma once
 
+#include <stdlib.h>
+
 #include <ctime>
 #include <memory>
-#include <stdlib.h>
-#include <string>
-#include <utility>
-#include <vector>
-
-#include "json/json.h"
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-
-#include "paddle_api.h" // NOLINT
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "include/config_parser.h"
 #include "include/picodet_postprocess.h"
 #include "include/preprocess_op.h"
 #include "include/utils.h"
+#include "json/json.h"
+#include "paddle_api.h"  // NOLINT
 
-using namespace paddle::lite_api; // NOLINT
+using namespace paddle::lite_api;  // NOLINT
 
 namespace PPShiTu {
 
@@ -47,7 +46,7 @@ cv::Mat VisualizeResult(const cv::Mat &img,
                         const std::vector<int> &colormap, const bool is_rbox);
 
 class ObjectDetector {
-public:
+ public:
   explicit ObjectDetector(const Json::Value &config,
                           const std::string &model_dir, int cpu_threads = 1,
                           const int batch_size = 1) {
@@ -79,7 +78,7 @@ public:
     return config_.label_list_;
   }
 
-private:
+ private:
   // Preprocess image and copy data to input buffer
   void Preprocess(const cv::Mat &image_mat);
   // Postprocess result
@@ -96,4 +95,4 @@ private:
   ConfigPaser config_;
 };
 
-} // namespace PPShiTu
+}  // namespace PPShiTu

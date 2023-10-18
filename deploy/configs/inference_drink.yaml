@@ -1,5 +1,5 @@
 Global:
-  infer_imgs: "./drink_dataset_v1.0/test_images"
+  infer_imgs: "./drink_dataset_v2.0/test_images"
   det_inference_model_dir: "./models/picodet_PPLCNet_x2_5_mainbody_lite_v1.0_infer"
   rec_inference_model_dir: "./models/general_PPLCNet_x2_5_lite_v1.0_infer"
   rec_nms_thresold: 0.05
@@ -51,9 +51,9 @@ RecPostProcess: null
 # indexing engine config
 IndexProcess:
   index_method: "Flat" # supported: HNSW32, IVF, Flat
-  image_root: "./drink_dataset_v1.0/gallery"
-  index_dir:  "./drink_dataset_v1.0/index1"
-  data_file:  "./drink_dataset_v1.0/gallery/drink_label.txt"
+  image_root: "./drink_dataset_v2.0/gallery"
+  index_dir:  "./drink_dataset_v2.0/index"
+  data_file:  "./drink_dataset_v2.0/gallery/drink_label.txt"
   index_operation: "new" # suported: "append", "remove", "new"
   delimiter: "\t"
   dist_type: "IP"

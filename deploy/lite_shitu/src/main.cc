@@ -12,15 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <math.h>
+#include <stdarg.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
 #include <algorithm>
 #include <cmath>
 #include <iostream>
-#include <math.h>
 #include <numeric>
-#include <stdarg.h>
 #include <string>
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <vector>
 
 #include "include/config_parser.h"
@@ -47,8 +48,7 @@ static bool PathExists(const std::string &path) {
 }
 
 static void MkDir(const std::string &path) {
-  if (PathExists(path))
-    return;
+  if (PathExists(path)) return;
   int ret = 0;
   ret = mkdir(path.c_str(), 0755);
   if (ret != 0) {
@@ -59,10 +59,8 @@ static void MkDir(const std::string &path) {
 }
 
 static void MkDirs(const std::string &path) {
-  if (path.empty())
-    return;
-  if (PathExists(path))
-    return;
+  if (path.empty()) return;
+  if (PathExists(path)) return;
 
   MkDirs(DirName(path));
   MkDir(path);
@@ -120,11 +118,16 @@ void PrintResult(std::string &img_path,
   printf("%s:\n", img_path.c_str());
   for (int i = 0; i < det_result.size(); ++i) {
     int t = i;
-    printf("\tresult%d: bbox[%d, %d, %d, %d], score: %f, label: %s\n", i,
-           det_result[t].rect[0], det_result[t].rect[1], det_result[t].rect[2],
-           det_result[t].rect[3], det_result[t].confidence,
-           vector_search.GetLabel(search_result.I[search_result.return_k * t])
-               .c_str());
+    printf(
+        "\tresult%d: bbox[%d, %d, %d, %d], score: %f, label: %s, index_id: %d "
+        "image_id: %s\n",
+        i, det_result[t].rect[0], det_result[t].rect[1], det_result[t].rect[2],
+        det_result[t].rect[3], det_result[t].confidence,
+        vector_search.GetLabel(search_result.I[search_result.return_k * t])
+            .c_str(),
+        search_result.I[search_result.return_k * t],
+        vector_search.GetImageID(search_result.I[search_result.return_k * t])
+            .c_str());
   }
 }
 
@@ -172,6 +175,14 @@ int main(int argc, char **argv) {
   // create rec model
   PPShiTu::FeatureExtract rec(RT_Config);
   PPShiTu::VectorSearch searcher(RT_Config);
+
+  // delete_index using imageid
+  std::vector<std::string> image_ids;
+  image_ids.push_back("image_id_123");
+  image_ids.push_back("image_id_73");
+  image_ids.push_back("image_id_245");
+  searcher.RemoveFeature(image_ids);
+  searcher.SaveIndex();
 
   bool clear_gallery = false;
   if (RT_Config["Global"].isMember("clear_gallery")) {
@@ -265,7 +276,7 @@ int main(int argc, char **argv) {
           rec.RunRecModel(crop_img, rec_time, feature);
           features.insert(features.end(), feature.begin(), feature.end());
         }
-        searcher.AddFeature(features.data());
+        searcher.AddFeature(features.data(), std::to_string(1000000));
       }
 
       batch_imgs.clear();
@@ -279,10 +290,11 @@ int main(int argc, char **argv) {
     printf("After add gallery, index number: %d\n", searcher.GetIndexLength());
     searcher.SaveIndex(save_index_dir);
   }
-  if(clear_gallery){
+  if (clear_gallery) {
     printf("Gallery feture number: %d\n", searcher.GetIndexLength());
     searcher.ClearFeature();
-    printf("After clear Gallery, feture number: %d\n", searcher.GetIndexLength());
+    printf("After clear Gallery, feture number: %d\n",
+           searcher.GetIndexLength());
   }
   return 0;
 }

@@ -13,9 +13,12 @@
 // limitations under the License.
 
 #include "include/vector_search.h"
-#include <cstdio>
-#include <faiss/index_io.h>
+
 #include <faiss/AuxIndexStructures.h>
+#include <faiss/index_io.h>
+
+#include <algorithm>
+#include <cstdio>
 #include <fstream>
 #include <iostream>
 #include <regex>
@@ -28,9 +31,9 @@ void VectorSearch::LoadIndexFile() {
   this->index = faiss::read_index(fname, 0);
 }
 
-// load id_map.txt
+// load index_id2image_id.txt
 void VectorSearch::LoadIdMap() {
-  std::string file_path = this->index_dir + OS_PATH_SEP + "id_map.txt";
+  std::string file_path = this->index_dir + OS_PATH_SEP + "id_label_map.txt";
   std::ifstream in(file_path);
   std::string line;
   std::vector<std::string> m_vec;
@@ -40,13 +43,19 @@ void VectorSearch::LoadIdMap() {
       std::vector<std::string> v(
           std::sregex_token_iterator(line.begin(), line.end(), ws_re, -1),
           std::sregex_token_iterator());
-      if (v.size() != 2) {
+      if (v.size() != 3) {
         std::cout << "The number of element for each line in : " << file_path
-                  << "must be 2, exit the program..." << std::endl;
+                  << "must be 3: index_id image_id label, exit the program..."
+                  << std::endl;
         exit(1);
-      } else
-        this->id_map.insert(std::pair<long int, std::string>(
+      } else {
+        this->index_id2image_id.insert(std::pair<int64_t, std::string>(
             std::stol(v[0], nullptr, 10), v[1]));
+        this->image_id2index_id.insert(std::pair<std::string, int64_t>(
+            v[1], std::stol(v[0], nullptr, 10)));
+        this->image_id2label.insert(
+            std::pair<std::string, std::string>(v[1], v[2]));
+      }
     }
   }
 }
@@ -63,17 +72,32 @@ const SearchResult &VectorSearch::Search(float *feature, int query_number) {
 }
 
 const std::string &VectorSearch::GetLabel(faiss::Index::idx_t ind) {
-  return this->id_map.at(ind);
+  return this->image_id2label.at(this->index_id2image_id.at(ind));
 }
 
-int VectorSearch::AddFeature(float *feature, std::string label) {
+const std::string &VectorSearch::GetImageID(faiss::Index::idx_t ind) {
+  return this->index_id2image_id.at(ind);
+}
+
+int VectorSearch::AddFeature(float *feature, std::string image_id,
+                             std::string label) {
   this->index->add(1, feature);
-  int id = this->id_map.size();
-  if (label != "")
-    this->id_map.insert(std::pair<long int, std::string>(id, label));
-  else
-    this->id_map.insert(
-        std::pair<long int, std::string>(id, std::to_string(id)));
+  int id = this->index_id2image_id.size();
+  if (label != "") {
+    this->index_id2image_id.insert(
+        std::pair<int64_t, std::string>(id, image_id));
+    this->image_id2index_id.insert(
+        std::pair<std::string, int64_t>(image_id, id));
+    this->image_id2label.insert(
+        std::pair<std::string, std::string>(image_id, label));
+  } else {
+    this->index_id2image_id.insert(
+        std::pair<int64_t, std::string>(id, image_id));
+    this->image_id2index_id.insert(
+        std::pair<std::string, int64_t>(image_id, id));
+    this->image_id2label.insert(
+        std::pair<std::string, std::string>(image_id, std::to_string(id)));
+  }
   return this->index->ntotal;
 }
 
@@ -81,31 +105,82 @@ void VectorSearch::SaveIndex(std::string save_dir) {
   std::string file_path_index, file_path_labelmap;
   if (save_dir == "") {
     file_path_index = this->index_dir + OS_PATH_SEP + "vector.index";
-    file_path_labelmap = this->index_dir + OS_PATH_SEP + "id_map.txt";
+    file_path_labelmap = this->index_dir + OS_PATH_SEP + "id_label_map.txt";
   } else {
     file_path_index = save_dir + OS_PATH_SEP + "vector.index";
-    file_path_labelmap = save_dir + OS_PATH_SEP + "id_map.txt";
+    file_path_labelmap = save_dir + OS_PATH_SEP + "id_label_map.txt";
   }
   // save index
   faiss::write_index(this->index, file_path_index.c_str());
 
   // save label_map
   std::ofstream out(file_path_labelmap);
-  std::map<long int, std::string>::iterator iter;
-  for (iter = this->id_map.begin(); iter != this->id_map.end(); iter++) {
-    std::string content = std::to_string(iter->first) + " " + iter->second;
+  std::map<int64_t, std::string>::iterator iter;
+  for (iter = this->index_id2image_id.begin();
+       iter != this->index_id2image_id.end(); iter++) {
+    std::string content = std::to_string(iter->first) + " " + iter->second +
+                          " " + this->image_id2label.at(iter->second);
     out.write(content.c_str(), content.size());
     out << std::endl;
   }
   out.close();
+  printf("save_index\n");
 }
 
-void VectorSearch::ClearFeature(){
-  faiss::IDSelectorRange ids(this->index_len, this->index->ntotal);
+void VectorSearch::ClearFeature() {
+  faiss::IDSelectorRange ids(0, this->index->ntotal);
   this->index->remove_ids(ids);
-  std::map<long int, std::string>::iterator iter;
-  iter = this->id_map.find(this->index_len);
-  this->id_map.erase(iter, this->id_map.end());
+  // std::map<int64_t, std::string>::iterator iter;
+  // iter = this->index_id2image_id.find(this->index_len);
+  this->index_id2image_id.erase(this->index_id2image_id.begin(),
+                                this->index_id2image_id.end());
+  this->image_id2index_id.erase(this->image_id2index_id.begin(),
+                                this->image_id2index_id.end());
 }
 
-} // namespace PPShiTu
+bool VectorSearch::RemoveFeature(std::vector<std::string> image_ids) {
+  std::vector<int64_t> ids;
+  for (int i = 0; i < image_ids.size(); i++) {
+    if (this->image_id2index_id.find(image_ids[i]) ==
+        this->image_id2index_id.end())
+      return false;
+    ids.push_back(this->image_id2index_id[image_ids[i]]);
+  }
+  sort(ids.begin(), ids.end());
+  // reverse(ids.begin(), ids.end());
+  faiss::IDSelectorBatch batch_ids(ids.size(), ids.data());
+  this->index->remove_ids(batch_ids);
+  std::vector<std::pair<int64_t, int64_t>> id_changes;
+  for (int64_t i = ids[0]; i < this->index->ntotal; i++) {
+    int index_change = 0;
+    bool flag = true;
+    for (int j = 0; j < ids.size(); j++) {
+      if (i == ids[j]) {
+        flag = false;
+        break;
+      } else if (i > ids[j])
+        index_change += 1;
+      else
+        break;
+    }
+    if (flag) {
+      id_changes.push_back(std::pair<int64_t, int64_t>(i, i - index_change));
+    }
+  }
+
+  for (int i = 0; i < id_changes.size(); i++) {
+    this->index_id2image_id[id_changes[i].second] =
+        this->index_id2image_id[id_changes[i].first];
+    this->image_id2index_id[this->index_id2image_id[id_changes[i].second]] =
+        id_changes[i].second;
+  }
+  for (int64_t i = this->index_id2image_id.size() - ids.size();
+       i < this->index_id2image_id.size(); i++)
+    this->index_id2image_id.erase(i);
+  for (int i = 0; i < image_ids.size(); i++) {
+    this->image_id2index_id.erase(image_ids[i]);
+    this->image_id2label.erase(image_ids[i]);
+  }
+  return true;
+}
+}  // namespace PPShiTu

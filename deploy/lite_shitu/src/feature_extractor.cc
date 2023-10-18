@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "include/feature_extractor.h"
+
 #include <cmath>
 #include <numeric>
 
@@ -43,7 +44,7 @@ void FeatureExtract::RunRecModel(const cv::Mat &img, double &cost_time,
 
   // Get output and post process
   std::unique_ptr<const Tensor> output_tensor(
-      std::move(this->predictor->GetOutput(0))); // only one output
+      std::move(this->predictor->GetOutput(0)));  // only one output
   auto end = std::chrono::system_clock::now();
   auto duration =
       std::chrono::duration_cast<std::chrono::microseconds>(end - start);
@@ -67,7 +68,6 @@ void FeatureExtract::RunRecModel(const cv::Mat &img, double &cost_time,
 void FeatureExtract::FeatureNorm(std::vector<float> &feature) {
   float feature_sqrt = std::sqrt(std::inner_product(
       feature.begin(), feature.end(), feature.begin(), 0.0f));
-  for (int i = 0; i < feature.size(); ++i)
-    feature[i] /= feature_sqrt;
+  for (int i = 0; i < feature.size(); ++i) feature[i] /= feature_sqrt;
 }
-} // namespace PPShiTu
+}  // namespace PPShiTu

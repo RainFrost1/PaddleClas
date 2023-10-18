@@ -19,11 +19,13 @@
 #define OS_PATH_SEP "/"
 #endif
 
-#include "json/json.h"
-#include <cstring>
 #include <faiss/Index.h>
 #include <faiss/index_io.h>
+
+#include <cstring>
 #include <map>
+
+#include "json/json.h"
 
 namespace PPShiTu {
 struct SearchResult {
@@ -33,7 +35,7 @@ struct SearchResult {
 };
 
 class VectorSearch {
-public:
+ public:
   explicit VectorSearch(const Json::Value &config) {
     // IndexProcess
     this->index_dir = config["IndexProcess"]["index_dir"].as<std::string>();
@@ -57,29 +59,35 @@ public:
 
   const std::string &GetLabel(faiss::Index::idx_t ind);
 
+  const std::string &GetImageID(faiss::Index::idx_t ind);
+
   const float &GetThreshold() { return this->score_thres; }
 
-  int AddFeature(float *feature, std::string label = "");
+  int AddFeature(float *feature, std::string image_id, std::string label = "");
 
   const int GetIndexLength() { return this->index->ntotal; }
 
   void SaveIndex(std::string save_dir = "");
 
-  std::string GetIndexDir(){ return this->index_dir; }
+  std::string GetIndexDir() { return this->index_dir; }
 
   void ClearFeature();
 
-private:
+  bool RemoveFeature(std::vector<std::string> image_ids);
+
+ private:
   std::string index_dir;
   int return_k = 5;
   float score_thres = 0.5;
   int index_len;
 
-  std::map<long int, std::string> id_map;
+  std::map<int64_t, std::string> index_id2image_id;
+  std::map<std::string, int64_t> image_id2index_id;
+  std::map<std::string, std::string> image_id2label;
   faiss::Index *index;
   int max_query_number = 6;
   std::vector<float> D;
   std::vector<faiss::Index::idx_t> I;
   SearchResult sr;
 };
-} // namespace PPShiTu
+}  // namespace PPShiTu

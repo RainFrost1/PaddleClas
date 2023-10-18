@@ -4,6 +4,24 @@
 
 Paddle Lite是飞桨轻量化推理引擎，为手机、IoT端提供高效推理能力，并广泛整合跨平台硬件，为端侧部署及应用落地问题提供轻量化的部署方案。
 
+## 修改记录
+
+1. 在`vector_search.h`中添加`RemoveFeature`函数，支持图像id输入删除对应检索库中的index。
+
+2. 在`vector_search.h`中添加`GetImageID`函数，支持图像输入index_id，返回image_id
+
+## 此版本注意事项
+
+由于需要支持删除单个或者多个检索库中索引的需求，因此对于整体逻辑做了以下修改。
+
+原来检索库中有两个文件`vecter.index`和`id_map.txt`，改为`vector.index`和`id_label_map.txt`。其中主要现在的不同体现在txt文件中，`id_map.txt`的格式为`index_id  label`, 而`id_label_map.txt`的格式为`index_id  image_id  label`。因为`index id`是检索库中自建的，上层应用获取不到，因此加入`image_id`一列。上层应用中控制`image_id`，保证每张图的id 唯一，为string 类型。检索库中存储并管理好，`image_id`和`index_id`的对应关系，在增加、删除feature的时候，进行动态更新。
+
+### 使用时注意事项
+
+1. 必须使用 `build_gallery_flat.py`生成检索库，而非`build_gallery.py`，具体生成方法参考下面步骤
+2. 由于`image_id`的加入，在使用`VectorSearch`类中`AddFeature`方法时，参数发生变化，后面新加一个`image_id`参数，为`std::string`类型。
+3. 在使用`VectorSearch`类中`RemoveFeature`方法，支持`std::vector<std::string>`类型输入，具体为单个或者多个`image_id`。函数中会删掉index库中，对应的`image_id`的`index_id`的检索索引。此功能支持单个或者多个的索引的删除。
+
 ## 1. 准备环境
 
 ### 运行准备
@@ -211,7 +229,7 @@ rm -rf general_PPLCNet_x2_5_lite_v1.0_infer.tar
 ```shell
 # 生成新的index库，注意指定好识别模型的路径，同时将index_mothod修改成Flat，HNSW32和IVF在此版本中可能存在bug，请慎重使用。
 # 如果使用自己的识别模型，对应的修改inference model的目录
-python python/build_gallery.py -c configs/inference_drink.yaml -o Global.rec_inference_model_dir=general_PPLCNet_x2_5_lite_v1.0_infer -o IndexProcess.index_method=Flat
+python python/build_gallery_flat.py -c configs/inference_drink.yaml -o Global.rec_inference_model_dir=general_PPLCNet_x2_5_lite_v1.0_infer -o IndexProcess.index_method=Flat
 
 # 进入到lite_shitu目录
 cd lite_shitu
@@ -237,7 +255,7 @@ python generate_json_config.py --det_model_path ppshitu_lite_models_v1.2/mainbod
 # 转化id_map.pkl为id_map.txt
 python transform_id_map.py -c ../configs/inference_drink.yaml
 ```
-转换成功后，会在`IndexProcess.index_dir`目录下生成`id_map.txt`。
+转换成功后，会在`IndexProcess.index_dir`目录下生成`id_label_map.txt`, 文件中每一行的格式跟之前略有区别：`indxe_id image_id label`。
 
 
 ### 2.5 与手机联调

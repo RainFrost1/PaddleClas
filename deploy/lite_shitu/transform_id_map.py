@@ -28,10 +28,10 @@ def main():
 
     with open(id_map_path, "rb") as fd:
         ids = pickle.load(fd)
-    with open(os.path.join(index_dir, "id_map.txt"), "w") as fd:
+    with open(os.path.join(index_dir, "id_label_map.txt"), "w") as fd:
         for k, v in ids.items():
             v = v.split("\t")[1]
-            fd.write(str(k) + " " + v + "\n")
+            fd.write(str(k) + " image_id_" + str(k) + " " + v + "\n")
     print('Transform id_map sucess')
 
 

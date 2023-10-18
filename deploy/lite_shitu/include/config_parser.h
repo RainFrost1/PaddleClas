@@ -33,13 +33,12 @@ void load_jsonf(std::string jsonfile, Json::Value &jsondata);
 
 // Inference model configuration parser
 class ConfigPaser {
-public:
+ public:
   ConfigPaser() {}
 
   ~ConfigPaser() {}
 
   bool load_config(const Json::Value &config) {
-
     // Get model arch : YOLO, SSD, RetinaNet, RCNN, Face
     if (config["Global"].isMember("det_arch")) {
       arch_ = config["Global"]["det_arch"].as<std::string>();
@@ -89,4 +88,4 @@ public:
   std::vector<int> fpn_stride_;
 };
 
-} // namespace PPShiTu
+}  // namespace PPShiTu

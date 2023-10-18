@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "include/preprocess_op.h"
+
 #include <string>
 #include <thread>
 #include <vector>
-
-#include "include/preprocess_op.h"
 
 namespace PPShiTu {
 
@@ -227,4 +227,4 @@ void CropImg(cv::Mat &img, cv::Mat &crop_img, std::vector<int> &area,
   scale.emplace_back((crop_y2 - crop_y1));
 }
 
-} // namespace PPShiTu
+}  // namespace PPShiTu

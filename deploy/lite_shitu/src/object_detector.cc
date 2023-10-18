@@ -13,9 +13,10 @@
 // limitations under the License.
 #include <sstream>
 // for setprecision
-#include "include/object_detector.h"
 #include <chrono>
 #include <iomanip>
+
+#include "include/object_detector.h"
 
 namespace PPShiTu {
 
@@ -317,4 +318,4 @@ std::vector<int> GenerateColorMap(int num_class) {
   return colormap;
 }
 
-} // namespace PPShiTu
+}  // namespace PPShiTu

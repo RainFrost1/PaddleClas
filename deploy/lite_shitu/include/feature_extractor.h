@@ -13,20 +13,22 @@
 // limitations under the License.
 
 #pragma once
-#include "paddle_api.h" // NOLINT
-#include "json/json.h"
 #include <arm_neon.h>
-#include <chrono>
-#include <fstream>
 #include <include/preprocess_op.h>
-#include <iostream>
 #include <math.h>
-#include <opencv2/opencv.hpp>
 #include <stdlib.h>
 #include <sys/time.h>
+
+#include <chrono>
+#include <fstream>
+#include <iostream>
+#include <opencv2/opencv.hpp>
 #include <vector>
 
-using namespace paddle::lite_api; // NOLINT
+#include "json/json.h"
+#include "paddle_api.h"  // NOLINT
+
+using namespace paddle::lite_api;  // NOLINT
 using namespace std;
 
 namespace PPShiTu {
@@ -38,7 +40,7 @@ struct RESULT {
 };
 
 class FeatureExtract {
-public:
+ public:
   explicit FeatureExtract(const Json::Value &config_file) {
     MobileConfig config;
     if (config_file["Global"]["rec_model_path"].as<std::string>().empty()) {
@@ -77,7 +79,7 @@ public:
   // void PostProcess(std::vector<float> &feature);
   void FeatureNorm(std::vector<float> &featuer);
 
-private:
+ private:
   std::shared_ptr<PaddlePredictor> predictor;
   // std::vector<std::string> label_list;
   std::vector<float> mean = {0.485f, 0.456f, 0.406f};
@@ -90,4 +92,4 @@ private:
   NormalizeImage normalize_op_;
   Permute permute_op_;
 };
-} // namespace PPShiTu
+}  // namespace PPShiTu

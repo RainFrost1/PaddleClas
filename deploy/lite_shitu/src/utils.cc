@@ -64,10 +64,9 @@ float RectOverlap(const ObjectResult &a, const ObjectResult &b) {
   return Aab / (Aa + Ab - Aab);
 }
 
-inline void
-GetMaxScoreIndex(const std::vector<ObjectResult> &det_result,
-                 const float threshold,
-                 std::vector<std::pair<float, int>> &score_index_vec) {
+inline void GetMaxScoreIndex(
+    const std::vector<ObjectResult> &det_result, const float threshold,
+    std::vector<std::pair<float, int>> &score_index_vec) {
   // Generate index score pairs.
   for (size_t i = 0; i < det_result.size(); ++i) {
     if (det_result[i].confidence > threshold) {
@@ -98,9 +97,8 @@ void NMSBoxes(const std::vector<ObjectResult> det_result,
       float overlap = RectOverlap(det_result[idx], det_result[kept_idx]);
       keep = overlap <= nms_threshold;
     }
-    if (keep)
-      indices.push_back(idx);
+    if (keep) indices.push_back(idx);
   }
 }
 
-} // namespace PPShiTu
+}  // namespace PPShiTu

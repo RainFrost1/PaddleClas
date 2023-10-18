@@ -14,9 +14,10 @@
 
 #pragma once
 
+#include <include/feature_extractor.h>
+
 #include <algorithm>
 #include <ctime>
-#include <include/feature_extractor.h>
 #include <memory>
 #include <numeric>
 #include <string>
@@ -49,12 +50,11 @@ static inline bool SortScorePairDescend(const std::pair<float, T> &pair1,
 
 float RectOverlap(const ObjectResult &a, const ObjectResult &b);
 
-inline void
-GetMaxScoreIndex(const std::vector<ObjectResult> &det_result,
-                 const float threshold,
-                 std::vector<std::pair<float, int>> &score_index_vec);
+inline void GetMaxScoreIndex(
+    const std::vector<ObjectResult> &det_result, const float threshold,
+    std::vector<std::pair<float, int>> &score_index_vec);
 
 void NMSBoxes(const std::vector<ObjectResult> det_result,
               const float score_threshold, const float nms_threshold,
               std::vector<int> &indices);
-} // namespace PPShiTu
+}  // namespace PPShiTu
